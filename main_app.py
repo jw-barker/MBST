@@ -3,7 +3,7 @@ import subprocess
 import os
 import requests
 import shutil
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QVBoxLayout, QLabel, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QVBoxLayout, QLabel, QPushButton, QLineEdit, QCheckBox
 from PyQt5.QtCore import Qt
 
 # Function to download the tool and save it to the desktop
@@ -78,6 +78,20 @@ def generate_diagnostic_logs():
     run_command_as_admin(command)
     QMessageBox.information(None, "Action", "Diagnostic logs generation process initiated.")
 
+def set_loglevel_debug():
+    command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\MBCloudEA.exe" -loglevel=debug'
+    run_command_as_admin(command)
+
+def set_loglevel_info():
+    command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\MBCloudEA.exe" -loglevel=info'
+    run_command_as_admin(command)
+
+def toggle_loglevel(state):
+    if state == Qt.Checked:
+        set_loglevel_debug()
+    else:
+        set_loglevel_info()
+
 class CleanupToolWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -87,41 +101,57 @@ class CleanupToolWindow(QWidget):
         self.setWindowTitle("Malwarebytes Business Support Tool")
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("Follow the steps below to clean up Malwarebytes Endpoint Agent:"))
+        step_label = QLabel("Follow the steps below to clean up Malwarebytes Endpoint Agent:")
+        step_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(step_label)
 
         download_button = QPushButton("Download Tool")
         download_button.setFixedSize(200, 30)
         download_button.clicked.connect(download_tool)
         layout.addWidget(download_button, alignment=Qt.AlignCenter)
 
-        layout.addWidget(QLabel("Step 1: Enter Tamper Protection password and click 'Clean with Password':"))
+        step1_label = QLabel("Step 1: Enter Tamper Protection password and click 'Clean with Password':")
+        step1_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(step1_label)
+
         global password_entry
         password_entry = QLineEdit()
         password_entry.setEchoMode(QLineEdit.Password)
-        layout.addWidget(password_entry)
+        password_entry.setFixedSize(200, 30)
+        layout.addWidget(password_entry, alignment=Qt.AlignCenter)
 
         clean_with_password_button = QPushButton("Clean with Password")
         clean_with_password_button.setFixedSize(200, 30)
         clean_with_password_button.clicked.connect(clean_with_password)
         layout.addWidget(clean_with_password_button, alignment=Qt.AlignCenter)
 
-        layout.addWidget(QLabel("Step 2: If Tamper Protection is disabled, click 'Clean without Password':"))
+        step2_label = QLabel("Step 2: If Tamper Protection is disabled, click 'Clean without Password':")
+        step2_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(step2_label)
+
         clean_without_password_button = QPushButton("Clean without Password")
         clean_without_password_button.setFixedSize(200, 30)
         clean_without_password_button.clicked.connect(clean_without_password)
         layout.addWidget(clean_without_password_button, alignment=Qt.AlignCenter)
 
-        layout.addWidget(QLabel("Step 3: After reboot, click 'Final Cleanup':"))
+        step3_label = QLabel("Step 3: After reboot, click 'Final Cleanup':")
+        step3_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(step3_label)
+
         final_cleanup_button = QPushButton("Final Cleanup")
         final_cleanup_button.setFixedSize(200, 30)
         final_cleanup_button.clicked.connect(final_cleanup)
         layout.addWidget(final_cleanup_button, alignment=Qt.AlignCenter)
 
-        layout.addWidget(QLabel("Verify the following directories are deleted after reboot:\n"
-                                "C:\\Program Files\\Malwarebytes Endpoint Agent\n"
-                                "C:\\ProgramData\\Malwarebytes Endpoint Agent\n"
-                                "C:\\Program Files\\Malwarebytes\n"
-                                "C:\\ProgramData\\Malwarebytes"))
+        verify_label = QLabel(
+            "Verify the following directories are deleted after reboot:\n"
+            "C:\\Program Files\\Malwarebytes Endpoint Agent\n"
+            "C:\\ProgramData\\Malwarebytes Endpoint Agent\n"
+            "C:\\Program Files\\Malwarebytes\n"
+            "C:\\ProgramData\\Malwarebytes"
+        )
+        verify_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(verify_label)
 
         check_log_file_button = QPushButton("Check Log File")
         check_log_file_button.setFixedSize(200, 30)
@@ -148,8 +178,6 @@ class MainWindow(QWidget):
         self.setWindowTitle("Malwarebytes Business Support Tool")
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("What would you like to do?", alignment=Qt.AlignCenter))
-
         instructions = QLabel(
             'The Business Support Tool removes Nebula and OneView products from endpoints. This includes files, settings, and license information. '
             'First, attempt to uninstall the endpoint agent by deleting it in Nebula or OneView. '
@@ -159,12 +187,16 @@ class MainWindow(QWidget):
             'Make sure to have your Tamper Protection uninstall password or that Tamper Protection is turned off, as you will need to know this to run the tool. '
             'For more information, check the corresponding article for your console: '
             '<br>'
-            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413799066643">Tamper protection policy settings in Nebula</a></center>'
-            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413802883987">Tamper protection policy settings in OneView</a></center>.'
+            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413799100435">Tamper protection policy settings in Nebula</a></center>'
+            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413799443347">Tamper protection policy settings in OneView</a></center>'
         )
         instructions.setOpenExternalLinks(True)
         instructions.setWordWrap(True)
         layout.addWidget(instructions)
+
+        loglevel_checkbox = QCheckBox("Enable Debug Log Level")
+        loglevel_checkbox.stateChanged.connect(toggle_loglevel)
+        layout.addWidget(loglevel_checkbox, alignment=Qt.AlignCenter)
 
         cleanup_tool_button = QPushButton("Remove the Endpoint Agent")
         cleanup_tool_button.setFixedSize(200, 30)
