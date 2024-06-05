@@ -76,40 +76,89 @@ def check_log_file():
     
     messagebox.showinfo("Info", "Log file not found in expected locations.")
 
+# Function to generate diagnostic logs with elevated privileges
+def generate_diagnostic_logs():
+    command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\Useragent\\EACmd.exe" -diag'
+    run_command_as_admin(command)
+    messagebox.showinfo("Action", "Diagnostic logs generation process initiated.")
+
+# Function to show the cleanup tool window
+def show_cleanup_tool():
+    # Hide the main window
+    main_window.withdraw()
+
+    # Create the cleanup tool window
+    cleanup_window = tk.Toplevel()
+    cleanup_window.title("Malwarebytes Cleanup Tool")
+
+    # Instruction label
+    tk.Label(cleanup_window, text="Follow the steps below to clean up Malwarebytes Endpoint Agent:").pack(pady=10)
+
+    # Download button
+    tk.Button(cleanup_window, text="Download Tool", command=download_tool).pack(pady=10)
+
+    # Step 1: Tamper Protection Enabled
+    tk.Label(cleanup_window, text="Step 1: Enter Tamper Protection password and click 'Clean with Password':").pack(pady=5)
+    global password_entry
+    password_entry = tk.Entry(cleanup_window, show="*")
+    password_entry.pack(pady=5)
+    tk.Button(cleanup_window, text="Clean with Password", command=clean_with_password).pack(pady=10)
+
+    # Step 2: Tamper Protection Disabled
+    tk.Label(cleanup_window, text="Step 2: If Tamper Protection is disabled, click 'Clean without Password':").pack(pady=5)
+    tk.Button(cleanup_window, text="Clean without Password", command=clean_without_password).pack(pady=10)
+
+    # Step 3: Final Cleanup
+    tk.Label(cleanup_window, text="Step 3: After reboot, click 'Final Cleanup':").pack(pady=5)
+    tk.Button(cleanup_window, text="Final Cleanup", command=final_cleanup).pack(pady=10)
+
+    # Instruction to verify directories
+    tk.Label(cleanup_window, text="Verify the following directories are deleted after reboot:\n"
+                         "C:\\Program Files\\Malwarebytes Endpoint Agent\n"
+                         "C:\\ProgramData\\Malwarebytes Endpoint Agent\n"
+                         "C:\\Program Files\\Malwarebytes\n"
+                         "C:\\ProgramData\\Malwarebytes").pack(pady=20)
+
+    # New button to check log file
+    tk.Label(cleanup_window, text="Check for mbst-clean-results.txt log file:").pack(pady=5)
+    tk.Button(cleanup_window, text="Check Log File", command=check_log_file).pack(pady=10)
+
+    # Back button to return to main window
+    def go_back():
+        cleanup_window.destroy()
+        main_window.deiconify()
+
+    tk.Button(cleanup_window, text="Back", command=go_back).pack(pady=10)
+
+# Function to show the diagnostic logs window
+def show_diagnostic_logs():
+    # Hide the main window
+    main_window.withdraw()
+
+    # Create the diagnostic logs window
+    diagnostic_window = tk.Toplevel()
+    diagnostic_window.title("Generate Diagnostic Logs")
+
+    # Placeholder action
+    tk.Button(diagnostic_window, text="Generate Logs", command=generate_diagnostic_logs).pack(pady=10)
+
+    # Back button to return to main window
+    def go_back():
+        diagnostic_window.destroy()
+        main_window.deiconify()
+
+    tk.Button(diagnostic_window, text="Back", command=go_back).pack(pady=10)
+
 # Create the main window
-root = tk.Tk()
-root.title("Malwarebytes Cleanup Tool")
+main_window = tk.Tk()
+main_window.title("Customer Tool")
 
-# Instruction label
-tk.Label(root, text="Follow the steps below to clean up Malwarebytes Endpoint Agent:").pack(pady=10)
+# Create a label with instructions
+tk.Label(main_window, text="What would you like to do?", font=("Arial", 14)).pack(pady=20)
 
-# Download button
-tk.Button(root, text="Download Tool", command=download_tool).pack(pady=10)
-
-# Step 1: Tamper Protection Enabled
-tk.Label(root, text="Step 1: Enter Tamper Protection password and click 'Clean with Password':").pack(pady=5)
-password_entry = tk.Entry(root, show="*")
-password_entry.pack(pady=5)
-tk.Button(root, text="Clean with Password", command=clean_with_password).pack(pady=10)
-
-# Step 2: Tamper Protection Disabled
-tk.Label(root, text="Step 2: If Tamper Protection is disabled, click 'Clean without Password':").pack(pady=5)
-tk.Button(root, text="Clean without Password", command=clean_without_password).pack(pady=10)
-
-# Step 3: Final Cleanup
-tk.Label(root, text="Step 3: After reboot, click 'Final Cleanup':").pack(pady=5)
-tk.Button(root, text="Final Cleanup", command=final_cleanup).pack(pady=10)
-
-# Instruction to verify directories
-tk.Label(root, text="Verify the following directories are deleted after reboot:\n"
-                     "C:\\Program Files\\Malwarebytes Endpoint Agent\n"
-                     "C:\\ProgramData\\Malwarebytes Endpoint Agent\n"
-                     "C:\\Program Files\\Malwarebytes\n"
-                     "C:\\ProgramData\\Malwarebytes").pack(pady=20)
-
-# New button to check log file
-tk.Label(root, text="Check for mbst-clean-results.txt log file:").pack(pady=5)
-tk.Button(root, text="Check Log File", command=check_log_file).pack(pady=10)
+# Create buttons for each action
+tk.Button(main_window, text="Remove the Endpoint Agent", command=show_cleanup_tool, font=("Seg", 12)).pack(pady=10)
+tk.Button(main_window, text="Generate Diagnostic Logs", command=show_diagnostic_logs, font=("Arial", 12)).pack(pady=10)
 
 # Start the GUI event loop
-root.mainloop()
+main_window.mainloop()
