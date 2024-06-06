@@ -92,6 +92,38 @@ def toggle_loglevel(state):
     else:
         set_loglevel_info()
 
+def check_services():
+    services = ["MBAMService", "MBEndpointAgent", "EAServiceMonitor"]
+    running_services = []
+    stopped_services = []
+    missing_services = []
+
+    for service in services:
+        try:
+            result = subprocess.run(['sc', 'query', service], capture_output=True, text=True)
+            if "RUNNING" in result.stdout:
+                running_services.append(service)
+            elif "STOPPED" in result.stdout:
+                stopped_services.append(service)
+            else:
+                missing_services.append(service)
+        except Exception as e:
+            missing_services.append(service)
+
+    if not missing_services and not stopped_services:
+        QMessageBox.information(None, "Services Check", "All services are running.")
+    else:
+        message = ""
+        if missing_services:
+            message += f"Missing services: {', '.join(missing_services)}.\n"
+        if stopped_services:
+            message += f"Stopped services: {', '.join(stopped_services)}."
+        if stopped_services:
+            restart = QMessageBox.question(None, "Restart Services", f"{message}\nWould you like to restart the stopped services?", QMessageBox.Yes | QMessageBox.No)
+            if restart == QMessageBox.Yes:
+                for service in stopped_services:
+                    run_command_as_admin(f'sc start {service}')
+
 class CleanupToolWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -187,8 +219,8 @@ class MainWindow(QWidget):
             'Make sure to have your Tamper Protection uninstall password or that Tamper Protection is turned off, as you will need to know this to run the tool. '
             'For more information, check the corresponding article for your console: '
             '<br>'
-            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413799100435">Tamper protection policy settings in Nebula</a></center>'
-            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413799443347">Tamper protection policy settings in OneView</a></center>'
+            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413799066643">Tamper protection policy settings in Nebula</a></center>'
+            '<center><a href="https://support.threatdown.com/hc/en-us/articles/4413802883987">Tamper protection policy settings in OneView</a></center>'
         )
         instructions.setOpenExternalLinks(True)
         instructions.setWordWrap(True)
@@ -207,6 +239,11 @@ class MainWindow(QWidget):
         diagnostic_logs_button.setFixedSize(200, 30)
         diagnostic_logs_button.clicked.connect(generate_diagnostic_logs)
         layout.addWidget(diagnostic_logs_button, alignment=Qt.AlignCenter)
+
+        check_services_button = QPushButton("Check Services")
+        check_services_button.setFixedSize(200, 30)
+        check_services_button.clicked.connect(check_services)
+        layout.addWidget(check_services_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
