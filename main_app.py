@@ -6,7 +6,7 @@ import shutil
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QVBoxLayout, QLabel, QPushButton, QLineEdit, QCheckBox
 from PyQt5.QtCore import Qt
 
-# Function to download the tool and save it to the desktop
+# Function to download the business support tool and save it to the desktop
 def download_tool():
     url = "https://downloads.malwarebytes.com/file/mbstcmd"
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
@@ -36,7 +36,7 @@ def run_command_as_admin(command):
     except Exception as e:
         QMessageBox.critical(None, "Exception", f"An error occurred while running the command: {str(e)}")
 
-# Function to run the cleanup tool with a password
+# Function to run the cleanup tool with TP password
 def clean_with_password():
     password = password_entry.text()
     if not password:
@@ -46,17 +46,17 @@ def clean_with_password():
     command = f"cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatamperpw \"{password}\""
     run_command_as_admin(command)
 
-# Function to run the cleanup tool without a password
+# Function to run the cleanup tool without TP password
 def clean_without_password():
     command = "cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatoken \"NoTamperProtection\""
     run_command_as_admin(command)
 
-# Function to perform final cleanup
+# Function to perform final cleanup after reboot
 def final_cleanup():
     command = "cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr"
     run_command_as_admin(command)
 
-# Function to check for the log file and copy it to the desktop if found
+# Function to check for the mbst-clean-results log file and copy it to the desktop if found
 def check_log_file():
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     log_filename = "mbst-clean-results.txt"
