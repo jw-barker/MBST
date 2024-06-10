@@ -15,6 +15,7 @@ def download_tool():
     try:
         response = requests.get(url, stream=True)
         if response.status_code == 200:
+            # Write the downloaded content to a file in chunks
             with open(tool_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
@@ -35,6 +36,7 @@ def run_command_as_admin(command):
     except Exception as e:
         QMessageBox.critical(None, "Exception", f"An error occurred while running the command: {str(e)}")
 
+# Function to run the cleanup tool with a password
 def clean_with_password():
     password = password_entry.text()
     if not password:
@@ -44,14 +46,17 @@ def clean_with_password():
     command = f"cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatamperpw \"{password}\""
     run_command_as_admin(command)
 
+# Function to run the cleanup tool without a password
 def clean_without_password():
     command = "cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatoken \"NoTamperProtection\""
     run_command_as_admin(command)
 
+# Function to perform final cleanup
 def final_cleanup():
     command = "cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr"
     run_command_as_admin(command)
 
+# Function to check for the log file and copy it to the desktop if found
 def check_log_file():
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     log_filename = "mbst-clean-results.txt"
@@ -73,25 +78,30 @@ def check_log_file():
 
     QMessageBox.information(None, "Info", "Log file not found in expected locations.")
 
+# Function to generate diagnostic logs
 def generate_diagnostic_logs():
     command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\Useragent\\EACmd.exe" -diag'
     run_command_as_admin(command)
     QMessageBox.information(None, "Action", "Diagnostic logs generation process initiated.")
 
+# Function to set log level to debug
 def set_loglevel_debug():
     command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\MBCloudEA.exe" -loglevel=debug'
     run_command_as_admin(command)
 
+# Function to set log level to info
 def set_loglevel_info():
     command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\MBCloudEA.exe" -loglevel=info'
     run_command_as_admin(command)
 
+# Function to toggle log level based on checkbox state
 def toggle_loglevel(state):
     if state == Qt.Checked:
         set_loglevel_debug()
     else:
         set_loglevel_info()
 
+# Function to check the status of specific services and restart if necessary
 def check_services():
     services = ["MBAMService", "MBEndpointAgent", "EAServiceMonitor"]
     running_services = []
@@ -124,6 +134,7 @@ def check_services():
                 for service in stopped_services:
                     run_command_as_admin(f'sc start {service}')
 
+# GUI window for the cleanup tool
 class CleanupToolWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -201,6 +212,7 @@ class CleanupToolWindow(QWidget):
         self.close()
         main_window.show()
 
+# Main window of the application
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -252,6 +264,7 @@ class MainWindow(QWidget):
         self.cleanup_tool_window = CleanupToolWindow()
         self.cleanup_tool_window.show()
 
+# Entry point of the application
 app = QApplication(sys.argv)
 main_window = MainWindow()
 main_window.show()
