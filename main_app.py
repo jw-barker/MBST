@@ -1,33 +1,47 @@
 import sys
 import subprocess
 import os
-import requests
 import shutil
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QVBoxLayout, QLabel, QPushButton, QLineEdit, QCheckBox
 from PyQt5.QtCore import Qt
 
-# Function to download the business support tool and save it to the desktop
-def download_tool():
-    url = "https://downloads.malwarebytes.com/file/mbstcmd"
+# Path to the binary file containing the mb-clean.exe byte array
+binary_file_path = os.path.join(os.path.dirname(__file__), 'mb_clean_bin.dat')
+
+# Function to write the binary content to the desktop
+def write_tool_to_desktop():
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     tool_path = os.path.join(desktop_path, "mb-clean.exe")
 
     try:
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            # Write the downloaded content to a file in chunks
-            with open(tool_path, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    file.write(chunk)
-            QMessageBox.information(None, "Success", "Tool downloaded successfully to the Desktop.")
-        else:
-            QMessageBox.critical(None, "Download Error", f"Failed to download the tool. Status code: {response.status_code}")
+        with open(binary_file_path, 'rb') as bin_file:
+            content = bin_file.read()
+        with open(tool_path, 'wb') as file:
+            file.write(content)
+        os.chmod(tool_path, 0o755)  # Ensure the file is executable
     except Exception as e:
-        QMessageBox.critical(None, "Exception", f"An error occurred while downloading the tool: {str(e)}")
+        QMessageBox.critical(None, "Exception", f"An error occurred while writing the tool to the desktop: {str(e)}")
+        return None
+    return tool_path
+
+# Function to remove the tool from the desktop
+def remove_tool_from_desktop():
+    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+    tool_path = os.path.join(desktop_path, "mb-clean.exe")
+    
+    try:
+        if os.path.exists(tool_path):
+            os.remove(tool_path)
+    except Exception as e:
+        QMessageBox.critical(None, "Exception", f"An error occurred while removing the tool from the desktop: {str(e)}")
 
 # Function to run commands with elevated privileges
 def run_command_as_admin(command):
     try:
+        tool_path = write_tool_to_desktop()  # Ensure the tool is written to the desktop before running the command
+        if not tool_path:
+            return
+        
         ps_command = f'Start-Process cmd.exe -ArgumentList \'/c {command}\' -Verb RunAs'
         result = subprocess.run(['powershell', '-Command', ps_command], capture_output=True, text=True)
 
@@ -36,27 +50,23 @@ def run_command_as_admin(command):
     except Exception as e:
         QMessageBox.critical(None, "Exception", f"An error occurred while running the command: {str(e)}")
 
-# Function to run the cleanup tool with TP password
 def clean_with_password():
     password = password_entry.text()
     if not password:
         QMessageBox.critical(None, "Input Error", "Please enter the Tamper Protection password.")
         return
 
-    command = f"cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatamperpw \"{password}\""
+    command = f'cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatamperpw "{password}"'
     run_command_as_admin(command)
 
-# Function to run the cleanup tool without TP password
 def clean_without_password():
-    command = "cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatoken \"NoTamperProtection\""
+    command = 'cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr /epatoken "NoTamperProtection"'
     run_command_as_admin(command)
 
-# Function to perform final cleanup after reboot
 def final_cleanup():
-    command = "cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr"
+    command = 'cd %userprofile%\\desktop && mb-clean.exe /y /cleanup /noreboot /nopr'
     run_command_as_admin(command)
 
-# Function to check for the mbst-clean-results log file and copy it to the desktop if found
 def check_log_file():
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     log_filename = "mbst-clean-results.txt"
@@ -78,23 +88,19 @@ def check_log_file():
 
     QMessageBox.information(None, "Info", "Log file not found in expected locations.")
 
-# Function to generate diagnostic logs
 def generate_diagnostic_logs():
     command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\Useragent\\EACmd.exe" -diag'
     run_command_as_admin(command)
     QMessageBox.information(None, "Action", "Diagnostic logs generation process initiated.")
 
-# Function to set log level to debug
 def set_loglevel_debug():
     command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\MBCloudEA.exe" -loglevel=debug'
     run_command_as_admin(command)
 
-# Function to set log level to info
 def set_loglevel_info():
     command = '"C:\\Program Files\\Malwarebytes Endpoint Agent\\MBCloudEA.exe" -loglevel=info'
     run_command_as_admin(command)
 
-# Function to toggle log level based on checkbox state
 def toggle_loglevel(state):
     if state == Qt.Checked:
         set_loglevel_debug()
@@ -119,22 +125,31 @@ def check_services():
                 missing_services.append(service)
         except Exception as e:
             missing_services.append(service)
+            print(f"Exception occurred while querying service {service}: {e}")
 
+    if running_services:
+        running_message = f"Running services: {', '.join(running_services)}"
+    else:
+        running_message = "No services are currently running."
+
+    message = running_message
+    if missing_services:
+        message += f"\nMissing services: {', '.join(missing_services)}."
+    if stopped_services:
+        message += f"\nStopped services: {', '.join(stopped_services)}."
+        
     if not missing_services and not stopped_services:
         QMessageBox.information(None, "Services Check", "All services are running.")
     else:
-        message = ""
-        if missing_services:
-            message += f"Missing services: {', '.join(missing_services)}.\n"
-        if stopped_services:
-            message += f"Stopped services: {', '.join(stopped_services)}."
         if stopped_services:
             restart = QMessageBox.question(None, "Restart Services", f"{message}\nWould you like to restart the stopped services?", QMessageBox.Yes | QMessageBox.No)
             if restart == QMessageBox.Yes:
                 for service in stopped_services:
                     run_command_as_admin(f'sc start {service}')
+        else:
+            QMessageBox.information(None, "Services Check", message)
 
-# GUI window for the cleanup tool
+
 class CleanupToolWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -147,11 +162,6 @@ class CleanupToolWindow(QWidget):
         step_label = QLabel("Follow the steps below to clean up Malwarebytes Endpoint Agent:")
         step_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(step_label)
-
-        download_button = QPushButton("Download Tool")
-        download_button.setFixedSize(200, 30)
-        download_button.clicked.connect(download_tool)
-        layout.addWidget(download_button, alignment=Qt.AlignCenter)
 
         step1_label = QLabel("Step 1: Enter Tamper Protection password and click 'Clean with Password':")
         step1_label.setAlignment(Qt.AlignCenter)
@@ -212,7 +222,6 @@ class CleanupToolWindow(QWidget):
         self.close()
         main_window.show()
 
-# Main window of the application
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -264,8 +273,11 @@ class MainWindow(QWidget):
         self.cleanup_tool_window = CleanupToolWindow()
         self.cleanup_tool_window.show()
 
-# Entry point of the application
 app = QApplication(sys.argv)
 main_window = MainWindow()
 main_window.show()
+
+# Connect the application exit signal to the function to remove the tool from the desktop
+app.aboutToQuit.connect(remove_tool_from_desktop)
+
 sys.exit(app.exec_())
